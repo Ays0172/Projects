@@ -1,0 +1,1372 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employee Data Cleaner</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap"
+    rel="stylesheet" />
+
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --green: #3fb950;
+      --yellow: #d29922;
+      --red: #f85149;
+      --purple: #a371f7;
+      --font-sans: 'IBM Plex Sans', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+      --radius: 8px;
+    }
+
+    html {
+      font-size: 14px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+    }
+
+    /* ── Layout ───────────────────────────────────────────────── */
+    .layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ──────────────────────────────────────────────── */
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 1.5rem 1rem;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sidebar-logo {
+      font-family: var(--font-mono);
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 0.3rem;
+    }
+
+    .sidebar-sub {
+      color: var(--muted);
+      font-size: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .sidebar-section {
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin: 1.2rem 0 0.5rem;
+    }
+
+    .step-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      cursor: default;
+      transition: color 0.2s, background 0.2s;
+      margin-bottom: 2px;
+    }
+
+    .step-nav-item.done {
+      color: var(--green);
+    }
+
+    .step-nav-item.active {
+      background: rgba(88, 166, 255, 0.08);
+      color: var(--accent);
+    }
+
+    .step-icon {
+      font-size: 0.85rem;
+      width: 18px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .sidebar-stats {
+      margin-top: 1.5rem;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 0.4rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8rem;
+    }
+
+    .stat-label {
+      color: var(--muted);
+    }
+
+    .stat-value {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    /* ── Main content ─────────────────────────────────────────── */
+    .main {
+      padding: 2rem 2.5rem;
+      max-width: 1100px;
+    }
+
+    .page-header {
+      margin-bottom: 2.5rem;
+    }
+
+    .page-title {
+      font-family: var(--font-mono);
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 0.3rem;
+    }
+
+    .page-desc {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    /* ── Step cards ───────────────────────────────────────────── */
+    .step-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.4rem 1.6rem;
+      margin-bottom: 1.4rem;
+      transition: border-color 0.25s;
+    }
+
+    .step-card.done {
+      border-color: rgba(63, 185, 80, 0.35);
+    }
+
+    .step-card.error {
+      border-color: rgba(248, 81, 73, 0.45);
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 1rem;
+    }
+
+    .step-badge {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      padding: 2px 10px;
+      border-radius: 20px;
+      background: #1f6feb;
+      color: #fff;
+    }
+
+    .step-title {
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .step-desc {
+      color: var(--muted);
+      font-size: 0.8rem;
+      margin-bottom: 1rem;
+    }
+
+    /* Collapsible step body */
+    .step-body {
+      display: none;
+    }
+
+    .step-body.expanded {
+      display: block;
+    }
+
+    /* ── Buttons ──────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.55rem 1.2rem;
+      border: none;
+      border-radius: 6px;
+      font-family: var(--font-sans);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+    }
+
+    .btn-success {
+      background: var(--green);
+      color: #000;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-danger {
+      background: var(--red);
+      color: #fff;
+    }
+
+    .btn-sm {
+      padding: 0.35rem 0.8rem;
+      font-size: 0.75rem;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-top: 0.6rem;
+    }
+
+    /* ── Form controls ────────────────────────────────────────── */
+    .form-row {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      margin-bottom: 0.8rem;
+    }
+
+    label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+
+    select,
+    input[type="number"],
+    input[type="text"] {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 0.45rem 0.7rem;
+      font-size: 0.82rem;
+      font-family: var(--font-sans);
+      outline: none;
+    }
+
+    select:focus,
+    input:focus {
+      border-color: var(--accent);
+    }
+
+    /* File drop zone */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .drop-zone:hover,
+    .drop-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(88, 166, 255, 0.04);
+    }
+
+    .drop-zone input[type="file"] {
+      display: none;
+    }
+
+    .drop-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .drop-text {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .drop-text span {
+      color: var(--accent);
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* ── Metric grid ──────────────────────────────────────────── */
+    .metrics {
+      display: flex;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+      margin: 0.8rem 0;
+    }
+
+    .metric {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.7rem 1.1rem;
+      min-width: 110px;
+    }
+
+    .metric-val {
+      font-family: var(--font-mono);
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .metric-lbl {
+      font-size: 0.68rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 0.1rem;
+    }
+
+    /* ── Tables ───────────────────────────────────────────────── */
+    .table-wrap {
+      overflow-x: auto;
+      margin-top: 0.8rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+    }
+
+    table.data-table th {
+      background: #1c2128;
+      text-align: left;
+      padding: 0.55rem 0.8rem;
+      color: var(--muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    table.data-table td {
+      padding: 0.45rem 0.8rem;
+      border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+    }
+
+    table.data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    table.data-table tr:hover td {
+      background: rgba(88, 166, 255, 0.04);
+    }
+
+    /* ── Alerts ───────────────────────────────────────────────── */
+    .alert {
+      padding: 0.7rem 1rem;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      margin-top: 0.8rem;
+    }
+
+    .alert-success {
+      background: rgba(63, 185, 80, 0.1);
+      border: 1px solid rgba(63, 185, 80, 0.3);
+      color: var(--green);
+    }
+
+    .alert-error {
+      background: rgba(248, 81, 73, 0.1);
+      border: 1px solid rgba(248, 81, 73, 0.3);
+      color: var(--red);
+    }
+
+    .alert-info {
+      background: rgba(88, 166, 255, 0.1);
+      border: 1px solid rgba(88, 166, 255, 0.3);
+      color: var(--accent);
+    }
+
+    .alert-warn {
+      background: rgba(210, 153, 34, 0.1);
+      border: 1px solid rgba(210, 153, 34, 0.3);
+      color: var(--yellow);
+    }
+
+    /* ── Progress bar ─────────────────────────────────────────── */
+    .pipeline-progress {
+      display: flex;
+      gap: 0;
+      margin-bottom: 2rem;
+    }
+
+    .pp-step {
+      flex: 1;
+      height: 4px;
+      background: var(--border);
+      border-radius: 0;
+      transition: background 0.3s;
+    }
+
+    .pp-step.done {
+      background: var(--green);
+    }
+
+    .pp-step.active {
+      background: var(--accent);
+    }
+
+    .pp-step:first-child {
+      border-radius: 4px 0 0 4px;
+    }
+
+    .pp-step:last-child {
+      border-radius: 0 4px 4px 0;
+    }
+
+    /* Spinner */
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Chart container */
+    .chart-wrap {
+      position: relative;
+      height: 200px;
+      margin-top: 1rem;
+    }
+
+    /* Tag */
+    .tag {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-family: var(--font-mono);
+      padding: 1px 7px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+
+    .tag-blue {
+      background: rgba(88, 166, 255, 0.15);
+      color: var(--accent);
+    }
+
+    .tag-green {
+      background: rgba(63, 185, 80, 0.15);
+      color: var(--green);
+    }
+
+    .tag-yellow {
+      background: rgba(210, 153, 34, 0.15);
+      color: var(--yellow);
+    }
+
+    .tag-red {
+      background: rgba(248, 81, 73, 0.15);
+      color: var(--red);
+    }
+
+    /* Divider */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0.8rem 0;
+    }
+
+    /* Correlation matrix */
+    .corr-grid {
+      display: grid;
+      gap: 2px;
+      margin-top: 0.5rem;
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .corr-cell {
+      width: 56px;
+      height: 44px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.62rem;
+      border-radius: 3px;
+    }
+
+    .corr-val {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      font-size: 0.72rem;
+    }
+
+    .corr-label {
+      font-size: 0.55rem;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1rem;
+    }
+
+    .tab {
+      padding: 0.5rem 1rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all 0.15s;
+    }
+
+    .tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .main {
+        padding: 1rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="layout">
+
+    <!-- ════ SIDEBAR ═════════════════════════════════════════════ -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">🧹 DataCleaner</div>
+      <div class="sidebar-sub">Indian Employee Dataset Pipeline</div>
+
+      <div class="sidebar-section">Pipeline Steps</div>
+      {% with steps=steps_done %}
+      <div class="step-nav-item {% if 0 in steps %}done{% endif %}" id="nav-0">
+        <span class="step-icon">{% if 0 in steps %}✅{% else %}⬜{% endif %}</span> Upload Dataset
+      </div>
+      <div class="step-nav-item {% if 1 in steps %}done{% endif %}" id="nav-1">
+        <span class="step-icon">{% if 1 in steps %}✅{% else %}⬜{% endif %}</span> Preview Data
+      </div>
+      <div class="step-nav-item {% if 2 in steps %}done{% endif %}" id="nav-2">
+        <span class="step-icon">{% if 2 in steps %}✅{% else %}⬜{% endif %}</span> Check Missing
+      </div>
+      <div class="step-nav-item {% if 3 in steps %}done{% endif %}" id="nav-3">
+        <span class="step-icon">{% if 3 in steps %}✅{% else %}⬜{% endif %}</span> Convert Types
+      </div>
+      <div class="step-nav-item {% if 4 in steps %}done{% endif %}" id="nav-4">
+        <span class="step-icon">{% if 4 in steps %}✅{% else %}⬜{% endif %}</span> Fill Missing
+      </div>
+      <div class="step-nav-item {% if 5 in steps %}done{% endif %}" id="nav-5">
+        <span class="step-icon">{% if 5 in steps %}✅{% else %}⬜{% endif %}</span> Remove Duplicates
+      </div>
+      <div class="step-nav-item {% if 6 in steps %}done{% endif %}" id="nav-6">
+        <span class="step-icon">{% if 6 in steps %}✅{% else %}⬜{% endif %}</span> Fix Negatives
+      </div>
+      <div class="step-nav-item {% if 7 in steps %}done{% endif %}" id="nav-7">
+        <span class="step-icon">{% if 7 in steps %}✅{% else %}⬜{% endif %}</span> Remove Outliers
+      </div>
+      <div class="step-nav-item {% if 8 in steps %}done{% endif %}" id="nav-8">
+        <span class="step-icon">{% if 8 in steps %}✅{% else %}⬜{% endif %}</span> Data Profile
+      </div>
+      {% endwith %}
+
+      {% if summary %}
+      <div class="sidebar-section">Live Stats</div>
+      <div class="sidebar-stats" id="sidebar-stats">
+        <div class="stat-row"><span class="stat-label">Rows</span>
+          <span class="stat-value" id="stat-rows">{{ summary.rows|default:"—" }}</span>
+        </div>
+        <div class="stat-row"><span class="stat-label">Columns</span>
+          <span class="stat-value" id="stat-cols">{{ summary.cols|default:"—" }}</span>
+        </div>
+        <div class="stat-row"><span class="stat-label">Missing</span>
+          <span class="stat-value" id="stat-missing">{{ summary.missing|default:"—" }}</span>
+        </div>
+      </div>
+      {% endif %}
+
+      <div style="margin-top:2rem;">
+        <button class="btn btn-danger btn-sm" onclick="resetPipeline()" id="btn-reset" {% if not summary %}disabled{%endif %}>↺ Reset Pipeline</button>
+      </div>
+    </aside>
+
+    <!-- ════ MAIN ════════════════════════════════════════════════ -->
+    <main class="main">
+
+      <div class="page-header">
+        <h1 class="page-title">Employee Data Cleaner</h1>
+        <p class="page-desc">Step-by-step cleaning pipeline — each step runs via AJAX with no page reload.</p>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="pipeline-progress" id="progress-bar">
+        {% for i in "012345678" %}
+        <div class="pp-step {% if forloop.counter0 in steps_done %}done{% endif %}" id="pp-{{ forloop.counter0 }}">
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- ── STEP 0: Upload ─────────────────────────────────────── -->
+      <div class="step-card {% if 0 in steps_done %}done{% endif %}" id="card-0">
+        <div class="step-header">
+          <span class="step-badge">STEP 0</span>
+          <span class="step-title">Upload Dataset</span>
+        </div>
+        <p class="step-desc">Accepts CSV or Excel (.xlsx). File stays in your session — nothing is persisted to a
+          database.</p>
+
+        <label class="drop-zone" id="drop-zone" for="file-input" ondragover="handleDragOver(event)"
+          ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+          <div class="drop-icon">📂</div>
+          <div class="drop-text">Drag & drop file here or <span>browse</span></div>
+          <div class="drop-text" id="selected-filename" style="margin-top:.3rem"></div>
+          <input type="file" id="file-input" accept=".csv,.xlsx,.xls" onchange="fileSelected(this)" />
+        </label>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="uploadFile()" id="btn-upload">
+            📤 Upload & Load
+          </button>
+        </div>
+        <div id="result-0"></div>
+      </div>
+
+      <!-- ── STEP 1: Preview ────────────────────────────────────── -->
+      <div class="step-card {% if 1 in steps_done %}done{% endif %}" id="card-1">
+        <div class="step-header">
+          <span class="step-badge">STEP 1</span>
+          <span class="step-title">Preview Data</span>
+        </div>
+        <p class="step-desc">Inspect the first 10 rows, column names, and inferred data types.</p>
+        <button class="btn btn-primary" onclick="runStep('preview', 1)">👁 Preview Data</button>
+        <div id="result-1"></div>
+      </div>
+
+      <!-- ── STEP 2: Missing values ─────────────────────────────── -->
+      <div class="step-card {% if 2 in steps_done %}done{% endif %}" id="card-2">
+        <div class="step-header">
+          <span class="step-badge">STEP 2</span>
+          <span class="step-title">Check Missing Values</span>
+        </div>
+        <p class="step-desc">Full audit of null counts and percentages across all columns.</p>
+        <button class="btn btn-primary" onclick="runStep('missing', 2)">🔍 Audit Missing Values</button>
+        <div id="result-2"></div>
+      </div>
+
+      <!-- ── STEP 3: Convert types ──────────────────────────────── -->
+      <div class="step-card {% if 3 in steps_done %}done{% endif %}" id="card-3">
+        <div class="step-header">
+          <span class="step-badge">STEP 3</span>
+          <span class="step-title">Convert Data Types</span>
+        </div>
+        <p class="step-desc">Change the data type of any column. Select the target type from the dropdown, then click
+          Convert.</p>
+
+        <div id="convert-options" style="margin-bottom: 1rem;">
+          <p style="color:var(--muted); font-size:0.8rem">Upload data first to see columns.</p>
+        </div>
+
+        <button class="btn btn-primary" onclick="runConvert()">🔢 Convert Types</button>
+        <div id="result-3" style="margin-top: 1rem;"></div>
+      </div>
+
+      <!-- ── STEP 4: Fill missing ───────────────────────────────── -->
+      <div class="step-card {% if 4 in steps_done %}done{% endif %}" id="card-4">
+        <div class="step-header">
+          <span class="step-badge">STEP 4</span>
+          <span class="step-title">Fill Missing Values</span>
+        </div>
+        <p class="step-desc">Fills missing numeric values with the column mean using pandas. Non-numeric columns are
+          left unchanged.</p>
+        <button class="btn btn-primary" onclick="runStep('fill', 4)">🩹 Fill Missing Values</button>
+        <div id="result-4"></div>
+      </div>
+
+      <!-- ── STEP 5: Duplicates ─────────────────────────────────── -->
+      <div class="step-card {% if 5 in steps_done %}done{% endif %}" id="card-5">
+        <div class="step-header">
+          <span class="step-badge">STEP 5</span>
+          <span class="step-title">Remove Duplicate Records</span>
+        </div>
+        <p class="step-desc">Drops fully identical rows. Operates on all columns by default.</p>
+        <button class="btn btn-primary" onclick="runStep('duplicates', 5)">🗑 Remove Duplicates</button>
+        <div id="result-5"></div>
+      </div>
+
+      <!-- ── STEP 6: Negative salaries ─────────────────────────── -->
+      <div class="step-card {% if 6 in steps_done %}done{% endif %}" id="card-6">
+        <div class="step-header">
+          <span class="step-badge">STEP 6</span>
+          <span class="step-title">Fix Negative Salaries</span>
+        </div>
+        <p class="step-desc">Replace logically impossible negative salary values.</p>
+
+        <div class="form-row">
+          <div>
+            <label>Replacement strategy</label>
+            <select id="neg-mode">
+              <option value="mean" selected>Column Mean</option>
+              <option value="median">Column Median</option>
+              <option value="zero">Zero</option>
+              <option value="custom">Custom Value</option>
+            </select>
+          </div>
+          <div id="custom-neg-wrap" style="display:none">
+            <label>Custom value (₹)</label>
+            <input type="number" id="neg-custom" value="0" min="0" />
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="runNegative()">💰 Fix Negative Salaries</button>
+        <div id="result-6"></div>
+      </div>
+
+      <!-- ── STEP 7: Outliers ───────────────────────────────────── -->
+      <div class="step-card {% if 7 in steps_done %}done{% endif %}" id="card-7">
+        <div class="step-header">
+          <span class="step-badge">STEP 7</span>
+          <span class="step-title">Remove Salary Outliers</span>
+        </div>
+        <p class="step-desc">Rows outside the chosen bounds are removed. Configure threshold and detection method.</p>
+
+        <div class="form-row">
+          <div>
+            <label>Detection method</label>
+            <select id="outlier-method">
+              <option value="zscore" selected>Z-Score (mean ± N·std)</option>
+              <option value="iqr">IQR (Q1 − N·IQR … Q3 + N·IQR)</option>
+            </select>
+          </div>
+          <div>
+            <label>Multiplier (N)</label>
+            <input type="number" id="outlier-n" value="3" min="1" max="10" step="0.5" style="width:90px" />
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="runOutliers()">📊 Remove Outliers</button>
+        <div id="result-7"></div>
+      </div>
+
+      <!-- ── STEP 8: Profile ────────────────────────────────────── -->
+      <div class="step-card {% if 8 in steps_done %}done{% endif %}" id="card-8">
+        <div class="step-header">
+          <span class="step-badge">STEP 8</span>
+          <span class="step-title">Data Profile Report</span>
+          <span class="tag tag-blue" style="margin-left:auto">✨ New</span>
+        </div>
+        <p class="step-desc">Descriptive statistics, correlation matrix, categorical breakdowns, and salary histogram —
+          not available in the Streamlit version.</p>
+        <button class="btn btn-primary" onclick="runStep('profile', 8)">📈 Generate Profile</button>
+        <div id="result-8"></div>
+      </div>
+
+      <!-- ── Export ─────────────────────────────────────────────── -->
+      <div class="step-card" id="card-export" style="border-color:rgba(167,113,247,0.35)">
+        <div class="step-header">
+          <span class="step-badge" style="background:#6e40c9">EXPORT</span>
+          <span class="step-title">Download Cleaned Dataset</span>
+        </div>
+        <p class="step-desc">Download your cleaned data. PDF opens a print-ready page — use <strong>Ctrl+P → Save as
+            PDF</strong>.</p>
+        <div class="btn-row">
+          <a href="/download/?format=csv" class="btn btn-success">⬇ Download CSV</a>
+          <a href="/download/?format=excel" class="btn btn-outline">⬇ Download Excel</a>
+          <a href="/download/?format=pdf" target="_blank" class="btn btn-primary">🖨 Export PDF</a>
+        </div>
+      </div>
+
+    </main>
+  </div><!-- /layout -->
+
+
+  <!-- ════ JavaScript ══════════════════════════════════════════════════════════ -->
+  <script>
+    const CSRF = "{{ csrf_token }}";
+
+    // ── AJAX helper ──────────────────────────────────────────────────────────────
+    async function post(url, body = null, isFormData = false) {
+      const opts = {
+        method: "POST",
+        headers: isFormData ? { "X-CSRFToken": CSRF } : {
+          "Content-Type": "application/json",
+          "X-CSRFToken": CSRF,
+        },
+        body: isFormData ? body : (body ? JSON.stringify(body) : null),
+      };
+      const r = await fetch(url, opts);
+      return await r.json();
+    }
+
+    // ── Sidebar / stats helpers ───────────────────────────────────────────────────
+    function updateStats(summary) {
+      if (!summary) return;
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set("stat-rows", Number(summary.rows).toLocaleString());
+      set("stat-cols", summary.cols);
+      set("stat-missing", Number(summary.missing).toLocaleString());
+    }
+
+    function markStepDone(n) {
+      const card = document.getElementById(`card-${n}`);
+      if (card) card.classList.add("done");
+      const pp = document.getElementById(`pp-${n}`);
+      if (pp) pp.classList.add("done");
+      const nav = document.getElementById(`nav-${n}`);
+      if (nav) {
+        nav.classList.add("done");
+        nav.querySelector(".step-icon").textContent = "✅";
+      }
+      document.getElementById("btn-reset").removeAttribute("disabled");
+    }
+
+    // ── Result area helpers ───────────────────────────────────────────────────────
+    function setResult(n, html) {
+      document.getElementById(`result-${n}`).innerHTML = html;
+    }
+
+    function metrics(pairs) {
+      return `<div class="metrics">${pairs.map(([v, l]) =>
+        `<div class="metric"><div class="metric-val">${v}</div><div class="metric-lbl">${l}</div></div>`
+      ).join("")}</div>`;
+    }
+
+    function alert_(type, msg) {
+      const icons = { success: "✅", error: "❌", info: "ℹ️", warn: "⚠️" };
+      return `<div class="alert alert-${type}">${icons[type] || "•"} ${msg}</div>`;
+    }
+
+    function tableFromRows(cols, rows) {
+      const ths = cols.map(c => `<th>${c}</th>`).join("");
+      const trs = rows.map(r =>
+        `<tr>${cols.map(c => `<td>${r[c] ?? ""}</td>`).join("")}</tr>`
+      ).join("");
+      return `<div class="table-wrap"><table class="data-table"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table></div>`;
+    }
+
+    // ── Spinner on button ────────────────────────────────────────────────────────
+    function btnLoading(btn, loading) {
+      if (loading) {
+        btn.dataset.origText = btn.innerHTML;
+        btn.innerHTML = `<span class="spinner"></span> Running…`;
+        btn.disabled = true;
+      } else {
+        btn.innerHTML = btn.dataset.origText || btn.innerHTML;
+        btn.disabled = false;
+      }
+    }
+
+    // ── File upload ───────────────────────────────────────────────────────────────
+    function handleDragOver(e) { e.preventDefault(); document.getElementById("drop-zone").classList.add("drag-over"); }
+    function handleDragLeave() { document.getElementById("drop-zone").classList.remove("drag-over"); }
+    function handleDrop(e) {
+      e.preventDefault();
+      document.getElementById("drop-zone").classList.remove("drag-over");
+      const f = e.dataTransfer.files[0];
+      if (f) { document.getElementById("file-input").files = e.dataTransfer.files; fileSelected({ files: [f] }); }
+    }
+    function fileSelected(el) {
+      const f = el.files[0];
+      if (f) document.getElementById("selected-filename").textContent = `📄 ${f.name} (${(f.size / 1024).toFixed(1)} KB)`;
+    }
+
+    async function uploadFile() {
+      const fi = document.getElementById("file-input");
+      if (!fi.files.length) { alert("Please select a file first."); return; }
+      const btn = event.target;
+      btnLoading(btn, true);
+      const fd = new FormData();
+      fd.append("file", fi.files[0]);
+      const data = await post("/upload/", fd, true);
+      btnLoading(btn, false);
+      if (data.ok) {
+        markStepDone(0);
+        updateStats(data.summary);
+
+        // Generate dynamic type conversion dropdowns
+        if (data.columns && data.dtypes) {
+          let convertHtml = '<div class="form-row">';
+          for (let col of data.columns) {
+            let currType = data.dtypes[col] || "object";
+            convertHtml += `
+            <div style="flex: 1 1 200px">
+                <label title="Current: ${currType}">${col} <span style="font-size:0.65rem">(${currType})</span></label>
+                <select class="type-convert-select" data-col="${col}">
+                    <option value="none" selected>Skip (Keep ${currType})</option>
+                    <option value="int">Integer</option>
+                    <option value="float">Float</option>
+                    <option value="str">String</option>
+                    <option value="bool">Boolean</option>
+                    <option value="datetime">Datetime</option>
+                </select>
+            </div>`;
+          }
+          convertHtml += '</div>';
+          document.getElementById("convert-options").innerHTML = convertHtml;
+        }
+
+
+
+        setResult(0, metrics([
+          [Number(data.summary.rows).toLocaleString(), "Rows"],
+          [data.summary.cols, "Columns"],
+          [data.summary.missing, "Missing Values"],
+        ]) + alert_("success", `Dataset loaded — ${data.columns.length} columns detected.`));
+      } else {
+        setResult(0, alert_("error", data.error));
+      }
+    }
+
+    // ── Generic step runner ───────────────────────────────────────────────────────
+    async function runStep(endpoint, stepNum, body = null) {
+      const btn = event.target;
+      btnLoading(btn, true);
+      const data = await post(`/step/${endpoint}/`, body);
+      btnLoading(btn, false);
+
+      if (!data.ok) {
+        setResult(stepNum, alert_("error", data.error));
+        document.getElementById(`card-${stepNum}`).classList.add("error");
+        return;
+      }
+
+      markStepDone(stepNum);
+      updateStats(data.summary);
+
+      // ── Step-specific rendering ──
+      if (stepNum === 1) renderPreview(data);
+      else if (stepNum === 2) renderMissing(data);
+      else if (stepNum === 4) renderFill(data);
+      else if (stepNum === 5) renderDupes(data);
+      else if (stepNum === 8) renderProfile(data);
+    }
+
+    // ── Custom step runners ───────────────────────────────────────────────────────
+    async function runConvert() {
+      const selects = document.querySelectorAll(".type-convert-select");
+      const conversions = {};
+      selects.forEach(sel => {
+        if (sel.value !== "none") {
+          conversions[sel.dataset.col] = sel.value;
+        }
+      });
+
+      if (Object.keys(conversions).length === 0) {
+        setResult(3, alert_("warn", "No columns selected for conversion. Choose at least one."));
+        return;
+      }
+
+      const btn = event.target;
+      btnLoading(btn, true);
+      const data = await post("/step/convert/", { conversions });
+      btnLoading(btn, false);
+
+      if (!data.ok) { setResult(3, alert_("error", data.error)); return; }
+
+      markStepDone(3);
+      updateStats(data.summary);
+
+      // Update the dropdown labels with new types
+      if (data.dtypes) {
+        selects.forEach(sel => {
+          const col = sel.dataset.col;
+          if (data.dtypes[col]) {
+            const label = sel.previousElementSibling;
+            label.innerHTML = `${col} <span style="font-size:0.65rem">(${data.dtypes[col]})</span>`;
+            label.title = `Current: ${data.dtypes[col]}`;
+            sel.value = "none"; // Reset selection after success
+            sel.options[0].text = `Skip (Keep ${data.dtypes[col]})`;
+          }
+        });
+      }
+
+      renderConvert(data);
+    }
+    function renderFill(data) {
+      const logRows = (data.fill_log || []).map(r =>
+        `<tr><td>${r.column}</td><td><span class="tag tag-blue">${r.strategy}</span></td>
+     <td>${r.fill_val}</td><td>${r.strategy === 'delete' ? r.filled + ' rows dropped' : r.filled + ' cells'}</td></tr>`
+      ).join("");
+      const remaining = data.remaining !== undefined ? data.remaining : (data.summary ? data.summary.missing : 0);
+      const rowsNote = data.rows_after ? ` &nbsp;|&nbsp; <b>${Number(data.rows_after).toLocaleString()}</b> rows remaining` : '';
+      setResult(4,
+        metrics([[remaining, "Missing Left"]]) +
+        (logRows ? `<div class="table-wrap"><table class="data-table">
+      <thead><tr><th>Column</th><th>Strategy</th><th>Fill Value</th><th>Result</th></tr></thead>
+      <tbody>${logRows}</tbody>
+    </table></div>` : '<p style="color:var(--muted);font-size:0.8rem">No strategies applied.</p>') +
+        (remaining === 0
+          ? alert_("success", "All missing values handled." + rowsNote)
+          : alert_("warn", `${remaining} values still missing.` + rowsNote))
+      );
+    }
+
+    async function runFill(e) {
+      const strategies = {};
+      document.querySelectorAll(".fill-strategy-select").forEach(sel => {
+        if (sel.value && sel.value !== "skip") strategies[sel.dataset.col] = sel.value;
+      });
+      const btn = (e && e.target) ? e.target : document.querySelector('[onclick^="runFill"]');
+      if (btn) btnLoading(btn, true);
+      const data = await post("/step/fill/", { strategies });
+      if (btn) btnLoading(btn, false);
+      if (!data.ok) { setResult(4, alert_("error", data.error)); return; }
+      markStepDone(4); updateStats(data.summary);
+      renderFill(data);
+    }
+
+    async function runNegative() {
+      const mode = document.getElementById("neg-mode").value;
+      const body = { column: "Salary (INR)", mode };
+      if (mode === "custom") body.custom_value = document.getElementById("neg-custom").value;
+      const btn = event.target; btnLoading(btn, true);
+      const data = await post("/step/negative/", body);
+      btnLoading(btn, false);
+      if (!data.ok) { setResult(6, alert_("error", data.error)); return; }
+      markStepDone(6); updateStats(data.summary);
+      setResult(6,
+        metrics([
+          [data.neg_count, "Negative Salaries Fixed"],
+          [`₹${Number(data.fill_val).toLocaleString()}`, "Replacement Value"],
+        ]) + alert_("success", `${data.neg_count} negative salary values corrected.`)
+      );
+    }
+
+    async function runOutliers() {
+      const method = document.getElementById("outlier-method").value;
+      const n = parseFloat(document.getElementById("outlier-n").value);
+      const btn = event.target; btnLoading(btn, true);
+      const data = await post("/step/outliers/", { column: "Salary (INR)", method, std_multiplier: n });
+      btnLoading(btn, false);
+      if (!data.ok) { setResult(7, alert_("error", data.error)); return; }
+      markStepDone(7); updateStats(data.summary);
+
+      const histId = "hist-chart-" + Date.now();
+      setResult(7,
+        metrics([
+          [data.removed.toLocaleString(), "Outliers Removed"],
+          [`₹${Number(data.lower).toLocaleString()}`, "Lower Bound"],
+          [`₹${Number(data.upper).toLocaleString()}`, "Upper Bound"],
+          [Number(data.summary.rows).toLocaleString(), "Rows Remaining"],
+        ]) +
+        `<div class="chart-wrap"><canvas id="${histId}"></canvas></div>` +
+        alert_("success", `${data.removed} rows removed outside [₹${Number(data.lower).toLocaleString()} – ₹${Number(data.upper).toLocaleString()}].`)
+      );
+
+      if (data.hist && data.hist.labels) {
+        renderHistogram(histId, data.hist, "Salary Distribution (After Outlier Removal)");
+      }
+    }
+
+    // ── Step render functions ────────────────────────────────────────────────────
+    function renderPreview(data) {
+      const tabs = `
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab(this,'preview-data')">Data Preview</div>
+      <div class="tab" onclick="switchTab(this,'preview-types')">Column Types</div>
+    </div>
+    <div id="preview-data">
+      <div class="table-wrap">${data.head_html}</div>
+    </div>
+    <div id="preview-types" style="display:none">
+      ${tableFromRows(["column", "dtype", "non_null"], data.dtype_rows)}
+    </div>`;
+      setResult(1, metrics([
+        [Number(data.summary.rows).toLocaleString(), "Rows"],
+        [data.summary.cols, "Columns"],
+        [data.summary.missing, "Missing Values"],
+      ]) + tabs);
+    }
+
+    function renderMissing(data) {
+      const rows = data.rows.map(r => ({
+        ...r,
+        pct: r.pct.toFixed(2) + "%",
+        count: r.count,
+        status: r.count === 0
+          ? `<span class="tag tag-green">Clean</span>`
+          : r.pct > 20
+            ? `<span class="tag tag-red">High</span>`
+            : `<span class="tag tag-yellow">Low</span>`,
+      }));
+      const affected = data.rows.filter(r => r.count > 0).length;
+      setResult(2,
+        metrics([
+          [data.rows.reduce((a, r) => a + r.count, 0).toLocaleString(), "Total Missing"],
+          [affected, "Columns Affected"],
+        ]) +
+        tableFromRows(["column", "dtype", "count", "pct", "status"], rows)
+      );
+    }
+
+    function renderConvert(data) {
+      const rows = data.converted.map(c => ({
+        column: c.column,
+        before: `<span class="tag tag-yellow">${c.before}</span>`,
+        after: c.error ? `<span class="tag tag-red">Error</span>` : `<span class="tag tag-green">${c.after}</span>`,
+        error: c.error || "—"
+      }));
+      setResult(3,
+        metrics([[data.converted.length, "Columns Attempted"]]) +
+        (rows.length ? tableFromRows(["column", "before", "after", "error"], rows) : "") +
+        alert_("success", "Type conversions applied.")
+      );
+    }
+
+    function renderDupes(data) {
+      setResult(5,
+        metrics([
+          [data.removed.toLocaleString(), "Duplicates Removed"],
+          [Number(data.summary.rows).toLocaleString(), "Rows Remaining"],
+        ]) +
+        alert_("success", `${data.removed} duplicate rows removed.`)
+      );
+    }
+
+    function renderProfile(data) {
+      // Descriptive stats table
+      const cols = Object.keys(data.describe);
+      const statKeys = ["count", "mean", "std", "min", "25%", "50%", "75%", "max"];
+      let descRows = "";
+      statKeys.forEach(k => {
+        const vals = cols.map(c => {
+          const v = data.describe[c]?.[k];
+          return `<td>${v !== undefined ? Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}</td>`;
+        }).join("");
+        descRows += `<tr><td><strong>${k}</strong></td>${vals}</tr>`;
+      });
+      const descTable = `<div class="table-wrap"><table class="data-table">
+    <thead><tr><th>Stat</th>${cols.map(c => `<th>${c}</th>`).join("")}</tr></thead>
+    <tbody>${descRows}</tbody></table></div>`;
+
+      // Categorical breakdowns
+      let catHtml = "";
+      for (const [col, vals] of Object.entries(data.categorical || {})) {
+        const bars = vals.map(v =>
+          `<div style="display:flex;align-items:center;gap:.5rem;margin:.2rem 0;font-size:.75rem">
+        <span style="width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)">${v.value}</span>
+        <div style="flex:1;background:var(--border);border-radius:3px;height:10px">
+          <div style="width:${v.pct}%;background:var(--accent);height:10px;border-radius:3px"></div>
+        </div>
+        <span style="color:var(--muted);width:35px;text-align:right">${v.pct}%</span>
+      </div>`
+        ).join("");
+        catHtml += `<div style="margin-bottom:1rem"><strong style="font-size:.8rem">${col}</strong>${bars}</div>`;
+      }
+
+      const histId = "profile-hist-" + Date.now();
+      setResult(8,
+        `<div class="tabs">
+       <div class="tab active" onclick="switchTab(this,'p-desc')">Descriptive Stats</div>
+       <div class="tab" onclick="switchTab(this,'p-cat')">Categorical</div>
+       <div class="tab" onclick="switchTab(this,'p-hist')">Salary Distribution</div>
+     </div>
+     <div id="p-desc">${descTable}</div>
+     <div id="p-cat" style="display:none">${catHtml || "<p style='color:var(--muted)'>No categorical columns found.</p>"}</div>
+     <div id="p-hist" style="display:none"><div class="chart-wrap"><canvas id="${histId}"></canvas></div></div>`
+      );
+
+      if (data.hist && data.hist.labels) {
+        // Chart renders on tab switch
+        document.querySelectorAll(".tab").forEach(t => {
+          t.addEventListener("click", () => {
+            if (document.getElementById(histId)) renderHistogram(histId, data.hist, "Salary Distribution");
+          }, { once: true });
+        });
+      }
+    }
+
+    // ── Chart helpers ────────────────────────────────────────────────────────────
+    let charts = {};
+    function renderHistogram(canvasId, hist, title) {
+      if (charts[canvasId]) return;
+      const ctx = document.getElementById(canvasId);
+      if (!ctx) return;
+      charts[canvasId] = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: hist.labels,
+          datasets: [{
+            label: title, data: hist.counts,
+            backgroundColor: "rgba(88,166,255,0.45)", borderColor: "#58a6ff", borderWidth: 1
+          }],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: "#e6edf3", font: { size: 11 } } } },
+          scales: {
+            x: {
+              ticks: { color: "#8b949e", maxRotation: 45, font: { size: 9 } },
+              grid: { color: "rgba(48,54,61,0.6)" }
+            },
+            y: { ticks: { color: "#8b949e" }, grid: { color: "rgba(48,54,61,0.6)" } },
+          },
+        },
+      });
+    }
+
+    // ── Tabs ─────────────────────────────────────────────────────────────────────
+    function switchTab(el, targetId) {
+      const container = el.closest(".step-card") || document;
+      container.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      el.classList.add("active");
+      // Hide all siblings of target
+      const target = document.getElementById(targetId);
+      if (!target) return;
+      const siblings = target.parentElement.children;
+      Array.from(siblings).forEach(s => {
+        if (!s.classList.contains("tabs")) s.style.display = "none";
+      });
+      target.style.display = "block";
+    }
+
+    // ── Reset ────────────────────────────────────────────────────────────────────
+    async function resetPipeline() {
+      if (!confirm("Reset to original dataset? All cleaning steps will be undone.")) return;
+      const btn = document.getElementById("btn-reset");
+      if (btn) btnLoading(btn, true);
+      try {
+        await post("/reset/");
+      } catch (e) {
+        console.error(e);
+      }
+      window.location.reload();
+    }
+
+    // ── Custom negative select ────────────────────────────────────────────────────
+    document.getElementById("neg-mode").addEventListener("change", function () {
+      document.getElementById("custom-neg-wrap").style.display =
+        this.value === "custom" ? "block" : "none";
+    });
+
+    // ── Page-load init: populate Step 3 dropdowns if data exists ────
+    (function () {
+      var el = document.getElementById("page-init-data");
+      if (!el) return;
+      try {
+        var d = JSON.parse(el.textContent);
+        var cols = d.columns || [];
+        var types = d.dtypes || {};
+        if (cols.length > 0) {
+          var h = '<div class="form-row">';
+          for (var i = 0; i < cols.length; i++) {
+            var c = cols[i];
+            var t = types[c] || 'object';
+            h += '<div style="flex:1 1 200px"><label title="Current: ' + t + '">' + c + ' <span style="font-size:0.65rem">(' + t + ')</span></label><select class="type-convert-select" data-col="' + c + '"><option value="none" selected>Skip (Keep ' + t + ')</option><option value="int">Integer</option><option value="float">Float</option><option value="str">String</option><option value="bool">Boolean</option><option value="datetime">Datetime</option></select></div>';
+          }
+          h += '</div>';
+          var cEl = document.getElementById("convert-options");
+          if (cEl) cEl.innerHTML = h;
+
+          // Step 4: fill-strategy dropdowns
+          var fh = '<div class="form-row">';
+          for (var j = 0; j < cols.length; j++) {
+            var fc = cols[j];
+            fh += '<div style="flex:1 1 160px"><label>' + fc + '</label><select class="fill-strategy-select" data-col="' + fc + '"><option value="skip" selected>Skip</option><option value="mean">Fill Mean</option><option value="median">Fill Median</option><option value="mode">Fill Mode</option><option value="delete">Delete Rows</option></select></div>';
+          }
+          fh += '</div>';
+          var fEl = document.getElementById("fill-options");
+          if (fEl) fEl.innerHTML = fh;
+
+        }
+      } catch (e) { }
+    })();
+  </script>
+
+  {% if columns_json %}
+  <script type="application/json"
+    id="page-init-data">{"columns": {{ columns_json|safe }}, "dtypes": {{ dtypes_json|safe }}}</script>
+  {% endif %}
+</body>
+
+</html>
