@@ -213,7 +213,7 @@ if 2 in st.session_state.steps_done:
         (f"{cols_with_missing}", "Columns Affected"),
     )
     st.dataframe(
-        missing_df.style.background_gradient(subset=["Missing Count"], cmap="YlOrRd"),
+        missing_df.style.bar(subset=["Missing Count"], color="#D4AF37"),
         use_container_width=True, hide_index=True
     )
 
